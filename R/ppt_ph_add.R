@@ -63,6 +63,73 @@ ph_add_text <- function( x, str, type = NULL, id_chr = NULL,
 }
 
 #' @export
+#' @title append text v2
+#' @description append text in a placeholder, but here link to slide is possible instead of hyperlink
+#' @inheritParams ph_remove
+#' @param str text to add
+#' @param style text style, a \code{\link{fp_text}} object
+#' @param pos where to add the new element relative to the cursor,
+#' "after" or "before".
+#' @param slide_index slide index to reach
+#' @examples
+#' library(magrittr)
+#' fileout <- tempfile(fileext = ".pptx")
+#' doc <- read_pptx() %>%
+#'   add_slide(layout = "Title and Content", master = "Office Theme") %>%
+#'   ph_with_text(type = "title", str = "Un titre 1") %>%
+#'   add_slide(layout = "Title and Content", master = "Office Theme") %>%
+#'   ph_with_text(type = "title", str = "Un titre 2") %>%
+#'   on_slide(1) %>%
+#'   ph_empty(type = "body") %>%
+#'   ph_add_par(level = 2) %>%
+#'   ph_add_text2(str = "Jump here to slide 2!", type = "body", slide_index=2)
+#'
+#' print(my_pres, target = fileout)
+#' @importFrom xml2 xml_child xml_children xml_add_child
+ph_add_text2 <- function( x, str, type = NULL, id_chr = NULL,
+                          style = fp_text(font.size = 0), pos = "after", slide_index = NULL ){
+
+  slide <- x$slide$get_slide(x$cursor)
+  shape_id <- get_shape_id(x, type = type, id_chr = id_chr )
+  nodes <- xml_find_all(slide$get(), "p:cSld/p:spTree/*[self::p:sp or self::p:graphicFrame or self::p:grpSp or self::p:pic]")
+
+  current_p <- xml_child(nodes[[shape_id]], "/a:p[last()]")
+  if( inherits(current_p, "xml_missing") )
+    stop("Could not find any paragraph in the selected shape.")
+  r_shape_ <- pml_run_str(str = str, style = style )
+
+  if( pos == "after" )
+    where_ <- length(xml_children(current_p))
+  else where_ <- 0
+
+  new_node <- as_xml_document(r_shape_)
+
+  if( !is.null(slide_index)){
+
+    # declare slide ref in relationships
+    slide_name <- x$slide$names()[slide_index]
+    slide$reference_slide(slide_name)
+    rel_df <- slide$rel_df()
+    id <- rel_df[rel_df$target == slide_name, "id" ]
+
+    # add hlinkClick
+    apr <- xml_child(new_node, "a:rPr")
+    str_ <- "<a:hlinkClick xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" r:id=\"%s\"/>"
+    str_ <- sprintf(str_, id)
+    xml_add_child(apr, as_xml_document(str_) )
+  }
+
+
+  xml_add_child(current_p, new_node, .where = where_ )
+
+  slide$save()
+  x$slide$update()
+
+  x
+}
+
+
+#' @export
 #' @title append paragraph
 #' @description append a new empty paragraph in a placeholder
 #' @inheritParams ph_remove
