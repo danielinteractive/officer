@@ -81,10 +81,9 @@ ph_add_text <- function( x, str, type = NULL, id_chr = NULL,
 #'   ph_with_text(type = "title", str = "Un titre 2") %>%
 #'   on_slide(1) %>%
 #'   ph_empty(type = "body") %>%
-#'   ph_add_par(level = 2) %>%
+#'   ph_add_par(type = "body", level = 2) %>%
 #'   ph_add_text2(str = "Jump here to slide 2!", type = "body", slide_index=2)
-#'
-#' print(my_pres, target = fileout)
+#' print(doc, target = fileout)
 #' @importFrom xml2 xml_child xml_children xml_add_child
 ph_add_text2 <- function( x, str, type = NULL, id_chr = NULL,
                           style = fp_text(font.size = 0), pos = "after", slide_index = NULL ){
@@ -114,7 +113,7 @@ ph_add_text2 <- function( x, str, type = NULL, id_chr = NULL,
 
     # add hlinkClick
     apr <- xml_child(new_node, "a:rPr")
-    str_ <- "<a:hlinkClick xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" r:id=\"%s\"/>"
+    str_ <- "<a:hlinkClick xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" r:id=\"%s\" action=\"ppaction://hlinksldjump\"/>"
     str_ <- sprintf(str_, id)
     xml_add_child(apr, as_xml_document(str_) )
   }
